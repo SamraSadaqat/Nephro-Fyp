@@ -16,6 +16,14 @@ router.post('/validateforgetlink', userCtrl.validate_forgetlink);
 router.post('/updatepassword', auth.validate, userCtrl.update_password);
 router.post('/verifypassword', auth.validate, userCtrl.verify_password);
 router.post('/verifyToken', userCtrl.validate_token);
+router.post("/getAllBmi", userCtrl.getAllBmiCalculations);
+router.post("/getBmi", userCtrl.getBmiCalculationById);
+router.post("/getAllDietPlans", userCtrl.getAllDietPlans);
+router.post("/getDietPlan", userCtrl.getDietPlanById);
+router.post("/getAllTestRecords", userCtrl.getAllTestRecords);
+router.post("/getTestRecordById", userCtrl.getTestRecordById);
+
+
 //Get Apis/v1
 // auth.validate
 

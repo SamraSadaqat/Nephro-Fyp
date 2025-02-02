@@ -5,6 +5,8 @@ var service = require("../../../services/app.services");
 var jwt = require("../../../services/jwtHelper.service");
 var errHandler = require("../../../util/errorHandler");
 var helper = require("../../../util/helper");
+const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Types;
 
 // const register = async (req, res) => {
 //   try {
@@ -27,18 +29,18 @@ var helper = require("../../../util/helper");
 //     //   });
 //     // }
 //       for (let [key, value] of Object.entries(req.body)) {
-        
+
 //           if (!value && value == "") {
 //             Errors.push({ name: key, message: key + "is required" });
 //           }
-        
+
 //       }
 //       if (Errors.length != 0) {
 //         return res.status(400).json({
 //           Errors,
 //         });
 //       }
-  
+
 //         obj = {
 //           ...req.body,
 //           email: email.toLowerCase()
@@ -57,9 +59,6 @@ var helper = require("../../../util/helper");
 //     });
 //   }
 // };
-
-
-
 
 // const { v4: uuidv4 } = require('uuid'); // Import the uuid library
 
@@ -118,78 +117,72 @@ var helper = require("../../../util/helper");
 //   }
 // };
 
-
-
-
-
-const { v4: uuidv4 } = require('uuid'); // Import the uuid library
+const { v4: uuidv4 } = require("uuid"); // Import the uuid library
 
 const register = async (req, res) => {
-  try {
-    let { email, password, name, device_token } = req.body; // Include fields for signup (e.g. password, name)
-    let obj = {};
-    let Errors = [];
+	try {
+		let { email, password, name, device_token } = req.body; // Include fields for signup (e.g. password, name)
+		let obj = {};
+		let Errors = [];
 
-    // Check if the email already exists in the database
-    let exist = await userModel.findOne({ email: email });
-    if (exist && exist._id) {
-      return res.status(409).json({
-        status: 0,
-        message: "Email is already in use!",
-      });
-    }
+		// Check if the email already exists in the database
+		let exist = await userModel.findOne({ email: email });
+		if (exist && exist._id) {
+			return res.status(409).json({
+				status: 0,
+				message: "Email is already in use!",
+			});
+		}
 
-    // Check for missing fields in the request body
-    for (let [key, value] of Object.entries(req.body)) {
-      if (!value && value == "") {
-        Errors.push({ name: key, message: key + " is required" });
-      }
-    }
+		// Check for missing fields in the request body
+		for (let [key, value] of Object.entries(req.body)) {
+			if (!value && value == "") {
+				Errors.push({ name: key, message: key + " is required" });
+			}
+		}
 
-    if (Errors.length != 0) {
-      return res.status(400).json({
-        Errors,
-      });
-    }
+		if (Errors.length != 0) {
+			return res.status(400).json({
+				Errors,
+			});
+		}
 
-    // Add the Users-id and prepare the object for user registration
-    obj = {
-      ...req.body,
-      email: email.toLowerCase(),
-      "Users-id": uuidv4(), // Generate a unique ID and assign it to the "Users-id" field
-    };
+		// Add the Users-id and prepare the object for user registration
+		obj = {
+			...req.body,
+			email: email.toLowerCase(),
+			"Users-id": uuidv4(), // Generate a unique ID and assign it to the "Users-id" field
+		};
 
-    // Save the user in the database
-    const user = new userModel(obj);
-    let result = await user.save();
+		// Save the user in the database
+		const user = new userModel(obj);
+		let result = await user.save();
 
-    // Returning user data along with the Users-id after successful registration
-    let finalData = JSON.stringify(result);
-    finalData = JSON.parse(finalData);
-    delete finalData["password"]; // Optional: Remove the password field before returning data
-    delete finalData["_id"]; // Optional: Remove the MongoDB _id field
-    delete finalData["creationDate"]; // Optional: Remove the creation date field
-    delete finalData["__v"]; // Optional: Remove the version field
+		// Returning user data along with the Users-id after successful registration
+		let finalData = JSON.stringify(result);
+		finalData = JSON.parse(finalData);
+		delete finalData["password"]; // Optional: Remove the password field before returning data
+		delete finalData["_id"]; // Optional: Remove the MongoDB _id field
+		delete finalData["creationDate"]; // Optional: Remove the creation date field
+		delete finalData["__v"]; // Optional: Remove the version field
 
-    // Return the response with Users-id and user details
-    return res.status(200).json({
-      status: 1,
-      message: "User Registered Successfully",
-      data: finalData,  // Send back the user data, including the Users-id
-    });
-  } catch (err) {
-    // Handle any errors that might occur during the process
-    let error = errHandler.handle(err);
-    return res.status(403).json({
-      status: 0,
-      message: error,
-    });
-  }
+		// Return the response with Users-id and user details
+		return res.status(200).json({
+			status: 1,
+			message: "User Register Successfully",
+			data: {
+				email: user.email,
+			},
+		});
+	} catch (err) {
+		// Handle any errors that might occur during the process
+		let error = errHandler.handle(err);
+		return res.status(403).json({
+			status: 0,
+			message: error,
+		});
+	}
 };
-
-
-
-
 
 // const auth = async (req, res) => {
 //   try {
@@ -260,327 +253,448 @@ const register = async (req, res) => {
 //   }
 // };
 
-
-
-
-
 const auth = async (req, res) => {
-  try {
-    let { email, password, device_token } = req.body;
+	try {
+		let { email, password, device_token } = req.body;
 
-    // Validate the required fields
-    if (!email || !password) {
-      return res.status(400).json({
-        status: false,
-        message: "All fields are required",
-      });
-    }
+		// Validate the required fields
+		if (!email || !password) {
+			return res.status(400).json({
+				status: false,
+				message: "All fields are required",
+			});
+		}
 
-    // Check if the user exists
-    let result = await userModel.findOne({
-      email: req.body.email.toLowerCase(),
-    });
+		// Check if the user exists
+		let result = await userModel.findOne({
+			email: req.body.email.toLowerCase(),
+		});
 
-    if (result && result._id) {
-      // Compare the entered password with the stored hashed password
-      let compare_result = await service.comparePassword(
-        req.body.password,
-        result.password
-      );
+		if (result && result._id) {
+			// Compare the entered password with the stored hashed password
+			let compare_result = await service.comparePassword(
+				req.body.password,
+				result.password
+			);
 
-      // If passwords match, generate a JWT token
-      if (compare_result) {
-        let token = await jwt.generateToken(
-          {
-            id: result._id,
-            email: result.email.toLowerCase(),
-          },
-          "login"  // You might want to adjust this to match the appropriate JWT secret used for login
-        );
+			// If passwords match, generate a JWT token
+			if (compare_result) {
+				let token = await jwt.generateToken(
+					{
+						id: result._id,
+						email: result.email.toLowerCase(),
+					},
+					"login" // You might want to adjust this to match the appropriate JWT secret used for login
+				);
 
-        // Update the user's record with the access token and device token
-        await userModel.updateOne(
-          {
-            _id: result._id,
-          },
-          {
-            $set: {
-              accessToken: token,  // Store the token in the database
-              device_token: device_token,  // Store the device token
-            },
-          },
-          {
-            runValidators: true,
-          }
-        );
+				// Update the user's record with the access token and device token
+				await userModel.updateOne(
+					{
+						_id: result._id,
+					},
+					{
+						$set: {
+							accessToken: token, // Store the token in the database
+							device_token: device_token, // Store the device token
+						},
+					},
+					{
+						runValidators: true,
+					}
+				);
 
-        // Clean up the response data (remove sensitive information)
-        var finalData = JSON.stringify(result);
-        finalData = JSON.parse(finalData);
-        delete finalData["password"];
-        delete finalData["_id"];
-        delete finalData["creationDate"];
-        delete finalData["__v"];
+				// Clean up the response data (remove sensitive information)
+				var finalData = JSON.stringify(result);
+				finalData = JSON.parse(finalData);
+				delete finalData["password"];
+				delete finalData["creationDate"];
+				delete finalData["__v"];
 
-        // Add the generated token to the response
-        Object.assign(finalData, { accessToken: token });
+				// Add the generated token to the response
+				Object.assign(finalData, { accessToken: token });
 
-        // Optional: Send a push notification to the user's device
-        // firebaseService.sendNotification(device_token);
+				// Optional: Send a push notification to the user's device
+				// firebaseService.sendNotification(device_token);
 
-        // Send the response with the user data and token
-        return res.status(200).json({
-          status: true,
-          message: "Login successful",
-          data: finalData,
-        });
-      } else {
-        // If password does not match
-        return res.status(404).json({
-          status: false,
-          message: "Invalid credentials",
-        });
-      }
-    }
+				// Send the response with the user data and token
+				return res.status(200).json({
+					status: true,
+					message: "Login successful",
+					data: finalData,
+				});
+			} else {
+				// If password does not match
+				return res.status(404).json({
+					status: false,
+					message: "Invalid credentials",
+				});
+			}
+		}
 
-    // If email is not registered
-    return res.status(404).json({
-      message: "Email is not registered, please visit the registration page",
-    });
-  } catch (err) {
-    // Handle any errors
-    let error = errHandler.handle(err);
-    return res.status(500).json(error);
-  }
+		// If email is not registered
+		return res.status(404).json({
+			message: "Email is not registered, please visit the registration page",
+		});
+	} catch (err) {
+		// Handle any errors
+		let error = errHandler.handle(err);
+		return res.status(500).json(error);
+	}
 };
 
-
-
-
 const forget = async (req, res) => {
-  try {
-    let { update_password ,mobile} = req.body;
-    let Update = await userModel.findOne({
-      mobile:mobile,
-    });
-    Update.password = update_password;
-    await Update.save().then(() => {
-      return res.status(200).json({
-        status: true,
-        message: "Password update successfully",
-      });
-    });
-
-  } catch (error) {
-    return res.status(500).json(error);
-  }
+	try {
+		let { update_password, mobile } = req.body;
+		let Update = await userModel.findOne({
+			mobile: mobile,
+		});
+		Update.password = update_password;
+		await Update.save().then(() => {
+			return res.status(200).json({
+				status: true,
+				message: "Password update successfully",
+			});
+		});
+	} catch (error) {
+		return res.status(500).json(error);
+	}
 };
 
 const user_info = async (req, res) => {
-  try {
-    var finalData = JSON.stringify(req.user);
-    finalData = JSON.parse(finalData);
-    delete finalData["password"];
-    delete finalData["_id"];
-    delete finalData["creationDate"];
-    delete finalData["__v"];
-    return res.status(200).json({
-      status: true,
-      message: "Authenticated",
-      data: finalData,
-    });
-  } catch (error) {
-    return res.status(500).json(error);
-  }
+	try {
+		var finalData = JSON.stringify(req.user);
+		finalData = JSON.parse(finalData);
+		delete finalData["password"];
+		delete finalData["_id"];
+		delete finalData["creationDate"];
+		delete finalData["__v"];
+		return res.status(200).json({
+			status: true,
+			message: "Authenticated",
+			data: finalData,
+		});
+	} catch (error) {
+		return res.status(500).json(error);
+	}
 };
 
 const logout = async (req, res) => {
-  try {
-    let Update = await userModel.findOne({
-      email: req.user.email.toLowerCase(),
-    });
-    Update.accessToken = "";
-    Update.device_token = "";
-    await Update.save().then(() => {
-      return res.status(200).json({
-        status: true,
-        message: "Logout Successfully",
-      });
-    });
-  } catch (error) {
-    return res.status(500).json(error);
-  }
+	try {
+		let Update = await userModel.findOne({
+			email: req.user.email.toLowerCase(),
+		});
+		Update.accessToken = "";
+		Update.device_token = "";
+		await Update.save().then(() => {
+			return res.status(200).json({
+				status: true,
+				message: "Logout Successfully",
+			});
+		});
+	} catch (error) {
+		return res.status(500).json(error);
+	}
 };
 
 const delete_account = async (req, res) => {
-  try {
-    let User = await userModel.findOne({
-      email: req.user.email.toLowerCase(),
-    });
-    await User.remove();
-    return res.status(200).json({
-      status: true,
-      message: "Your'e Account Deleted Permanently",
-    });
-  } catch (error) {
-    return res.status(500).json(error);
-  }
+	try {
+		let User = await userModel.findOne({
+			email: req.user.email.toLowerCase(),
+		});
+		await User.remove();
+		return res.status(200).json({
+			status: true,
+			message: "Your'e Account Deleted Permanently",
+		});
+	} catch (error) {
+		return res.status(500).json(error);
+	}
 };
 
 const validate_forgetlink = async (req, res) => {
-  try {
-    let user = await userModel.findOne({
-      reset_password_token: req.body.reset_token,
-    });
-    if (user) {
-      let result = await jwt.verifyToken(req.body.reset_token);
-      if (result.message == "jwt expired") {
-        return res.status(401).json({
-          message: "Password reset link has expired",
-        });
-      } else {
-        user.reset_password_token = "";
-        await user.save().then(() => {
-          return res.status(200).json({
-            message: "Token Verified",
-          });
-        });
-      }
-    } else {
-      return res.status(401).json({
-        message: "Password reset link has expired or already used",
-      });
-    }
-  } catch (error) {
-    return res.status(500).json(error);
-  }
+	try {
+		let user = await userModel.findOne({
+			reset_password_token: req.body.reset_token,
+		});
+		if (user) {
+			let result = await jwt.verifyToken(req.body.reset_token);
+			if (result.message == "jwt expired") {
+				return res.status(401).json({
+					message: "Password reset link has expired",
+				});
+			} else {
+				user.reset_password_token = "";
+				await user.save().then(() => {
+					return res.status(200).json({
+						message: "Token Verified",
+					});
+				});
+			}
+		} else {
+			return res.status(401).json({
+				message: "Password reset link has expired or already used",
+			});
+		}
+	} catch (error) {
+		return res.status(500).json(error);
+	}
 };
 const validate_token = async (req, res) => {
-  try {
-    let user = await userModel.findOne({
-      accessToken: req.body.token,
-    });
-    if (user) {
-      let result = await jwt.verifyToken(req.body.token);
-      if (result.message == "jwt expired") {
-        return res.status(401).json({
-          status: false,
-          message: "Access Token has expired",
-        });
-      } else {
-        user.accessToken = "";
-        await user.save().then(() => {
-          return res.status(200).json({
-            status: true,
-            message: "Token Verified",
-          });
-        });
-      }
-    } else {
-      return res.status(401).json({
-        message: "Access Token Not found",
-      });
-    }
-  } catch (error) {
-    return res.status(500).json(error);
-  }
+	try {
+		let user = await userModel.findOne({
+			accessToken: req.body.token,
+		});
+		if (user) {
+			let result = await jwt.verifyToken(req.body.token);
+			if (result.message == "jwt expired") {
+				return res.status(401).json({
+					status: false,
+					message: "Access Token has expired",
+				});
+			} else {
+				user.accessToken = "";
+				await user.save().then(() => {
+					return res.status(200).json({
+						status: true,
+						message: "Token Verified",
+					});
+				});
+			}
+		} else {
+			return res.status(401).json({
+				message: "Access Token Not found",
+			});
+		}
+	} catch (error) {
+		return res.status(500).json(error);
+	}
 };
 const update_password = async (req, res) => {
-  try {
-    let { update_password, current_password } = req.body;
-    let compare_result = await service.comparePassword(
-      current_password,
-      req.user.password
-    );
-    if (compare_result) {
-      if (update_password == current_password) {
-        return res.status(409).json({
-          message: "You typed an old password",
-        });
-      } else {
-        let Update = await userModel.findOne({
-          email: req.user.email,
-        });
-        Update.password = update_password;
-        await Update.save().then(() => {
-          return res.status(200).json({
-            status: true,
-            message: "Password update successfully",
-          });
-        });
-      }
-    }
-  } catch (error) {
-    return res.status(500).json(error);
-  }
+	try {
+		let { update_password, current_password } = req.body;
+		let compare_result = await service.comparePassword(
+			current_password,
+			req.user.password
+		);
+		if (compare_result) {
+			if (update_password == current_password) {
+				return res.status(409).json({
+					message: "You typed an old password",
+				});
+			} else {
+				let Update = await userModel.findOne({
+					email: req.user.email,
+				});
+				Update.password = update_password;
+				await Update.save().then(() => {
+					return res.status(200).json({
+						status: true,
+						message: "Password update successfully",
+					});
+				});
+			}
+		}
+	} catch (error) {
+		return res.status(500).json(error);
+	}
 };
 
 const verify_password = async (req, res) => {
-  try {
-    let compare_result = await service.comparePassword(
-      req.body.password,
-      req.user.password
-    );
-    if (compare_result) {
-    return res.status(200).json({
-        status: true,
-        message: "Password verified",
-      });
-    }
-    return res.status(401).json({
-      status: false,
-      message: "You typed the wrong password ",
-    });
-  } catch (error) {
-    return res.status(500).json(error);
-  }
+	try {
+		let compare_result = await service.comparePassword(
+			req.body.password,
+			req.user.password
+		);
+		if (compare_result) {
+			return res.status(200).json({
+				status: true,
+				message: "Password verified",
+			});
+		}
+		return res.status(401).json({
+			status: false,
+			message: "You typed the wrong password ",
+		});
+	} catch (error) {
+		return res.status(500).json(error);
+	}
 };
 
 let getUserProfile = async (req, res) => {
-  try {
-    let result = await userModel.findOne(
-      { _id: req.user._id },
-      { accessToken: 0, isApproved: 0, password: 0, terms: 0 }
-    );
-    return res.status(200).json({ data: result, message: "User Profile" });
-  } catch (error) {
-    return res.status(500).json({ message: "unexpected error", error: error });
-  }
+	try {
+		let result = await userModel.findOne(
+			{ _id: req.user._id },
+			{ accessToken: 0, isApproved: 0, password: 0, terms: 0 }
+		);
+		return res.status(200).json({ data: result, message: "User Profile" });
+	} catch (error) {
+		return res.status(500).json({ message: "unexpected error", error: error });
+	}
 };
-
-
-
 
 let getAllUsers = async (req, res) => {
-  try {
-      let result = await userModel.find({})
-      return res.status(200).json({
-        status: true,
-        data: result,
-        totalResults: totalResults,
-        message: "Users",
-      });
- 
-  
-  } catch (error) {
-    return res.status(500).json({ message: "unexpected error", error: error });
-  }
+	try {
+		let result = await userModel.find({});
+		return res.status(200).json({
+			status: true,
+			data: result,
+			totalResults: totalResults,
+			message: "Users",
+		});
+	} catch (error) {
+		return res.status(500).json({ message: "unexpected error", error: error });
+	}
 };
 
+const getAllBmiCalculations = async (req, res) => {
+	try {
+		const { user_id } = req.body;
+		if (!user_id) {
+			return res.status(400).json({ message: "user_id is required" });
+		}
+
+		const BmiCalculations = mongoose.connection.collection("bmi_calculations");
+		const bmiCalculations = await BmiCalculations.find({
+			"user-id": user_id,
+		}).toArray();
+
+		if (bmiCalculations.length === 0) {
+			return res.status(404).json({ message: "No BMI records found" });
+		}
+
+		res.status(200).json({ success: true, data: bmiCalculations });
+	} catch (error) {
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
+
+const getBmiCalculationById = async (req, res) => {
+	try {
+		const { bmi_id } = req.body;
+		console.log(bmi_id)
+		if (!bmi_id) {
+			return res.status(400).json({ message: "bmi_id is required" });
+		}
+
+		const objectId = ObjectId(bmi_id);
+
+		const BmiCalculations = mongoose.connection.collection("bmi_calculations");
+		const bmiRecord = await BmiCalculations.findOne({ _id: objectId });
+
+		if (!bmiRecord) {
+			return res.status(404).json({ message: "BMI record not found" });
+		}
+
+		res.status(200).json({ success: true, data: bmiRecord });
+	} catch (error) {
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
+
+const getAllDietPlans = async (req, res) => {
+	try {
+		const { user_id } = req.body;
+		if (!user_id) {
+			return res.status(400).json({ message: "user_id is required" });
+		}
+		const DietPlans = mongoose.connection.collection("diet_plans");
+		const dietPlans = await DietPlans.find({ user_id })
+			.project({ _id: 1, gfrResult: 1, ckdStageMessage: 1 })
+			.toArray();
+
+		if (dietPlans.length === 0) {
+			return res.status(404).json({ message: "No diet plans found" });
+		}
+		res.status(200).json({ success: true, data: dietPlans });
+	} catch (error) {
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
+
+const getDietPlanById = async (req, res) => {
+	console.log('abc')
+	try {
+		const { diet_plan_id } = req.body;
+		console.log(diet_plan_id)
+		if (!diet_plan_id) {
+			return res.status(400).json({ message: "diet_plan_id is required" });
+		}
+
+		const objectId = ObjectId(diet_plan_id);
+
+		const DietPlans = mongoose.connection.collection("diet_plans");
+		const dietPlan = await DietPlans.findOne({ _id: objectId });
+
+		if (!dietPlan) {
+			return res.status(404).json({ message: "Diet plan not found" });
+		}
+
+		res.status(200).json({ success: true, data: dietPlan });
+	} catch (error) {
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
+
+const getAllTestRecords = async (req, res) => {
+	try {
+		const { user_id } = req.body;
+		if (!user_id) {
+			return res.status(400).json({ message: "user_id is required" });
+		}
+		const TestCollection = mongoose.connection.collection("test");
+		const testRecords = await TestCollection.find({ "user-id": user_id })
+			.project({ _id: 1, "patient-name": 1, "test-date-time": 1 })
+			.toArray();
+		if (testRecords.length === 0) {
+			return res.status(404).json({ message: "No test records found" });
+		}
+		res.status(200).json({ success: true, data: testRecords });
+	} catch (error) {
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
+
+const getTestRecordById = async (req, res) => {
+	try {
+		const { test_id } = req.body;
+		if (!test_id) {
+			return res.status(400).json({ message: "test_id is required" });
+		}
+		const objectId = ObjectId(test_id);
+		const TestCollection = mongoose.connection.collection("test");
+		const testRecord = await TestCollection.findOne({ _id: objectId });
+		if (!testRecord) {
+			return res.status(404).json({ message: "Test record not found" });
+		}
+
+		res.status(200).json({
+			success: true,
+			data: testRecord,
+		});
+	} catch (error) {
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
 
 module.exports = {
-  register: register,
-  auth: auth,
-  forget: forget,
-  user_info: user_info,
-  verify_password: verify_password,
-  logout: logout,
-  delete_account: delete_account,
-  validate_forgetlink: validate_forgetlink,
-  validate_token: validate_token,
-  update_password: update_password,
-  getAllUsers: getAllUsers,
-  getUserProfile: getUserProfile
+	register: register,
+	auth: auth,
+	forget: forget,
+	user_info: user_info,
+	verify_password: verify_password,
+	logout: logout,
+	delete_account: delete_account,
+	validate_forgetlink: validate_forgetlink,
+	validate_token: validate_token,
+	update_password: update_password,
+	getAllUsers: getAllUsers,
+	getUserProfile: getUserProfile,
+	getAllBmiCalculations,
+	getBmiCalculationById,
+	getAllDietPlans,
+	getDietPlanById,
+	getAllTestRecords,
+	getTestRecordById,
 };
 
 // "use strict";
