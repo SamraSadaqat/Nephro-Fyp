@@ -8,20 +8,26 @@ var mongoose = require("mongoose");
 let helmet = require("helmet");
 var cors = require("cors");
 var appRoutes = require("./app_backend/routes/v1/app.route");
-console.log()
+const env = process.env.DEVELOPMENT_CONNECTION_STRING;
+	
+	var port = process.env.PORT || '3002'
+	
 mongoose
-  .connect(
-    process.env.NODE_ENV == "development" ?
-    process.env.DEVELOPMENT_CONNECTION_STRING :
-    process.env.PRODUCTION_CONNECTION_STRING, {
-      useNewUrlParser: true,
-      useCreateIndex: true,
-      useUnifiedTopology: true,
-      useFindAndModify: false,
-    }
-  )
-  .then((res) => console.log("DB Connected Successfully"))
-  .catch((err) => console.log("Unable to connect with DB"));
+	.connect(env, {
+		useNewUrlParser: true,
+		useCreateIndex: true,
+		useUnifiedTopology: true,
+		useFindAndModify: false,
+	})
+	.then(() => {
+		console.log("✅ DB Connected Successfully");
+		app.listen(port, () => {
+			console.log(`🚀 Server running on port ${port}`);
+		});
+	})
+	.catch((err) => {
+		console.error("Unable to connect with DB", err);
+	});
 
 var app = express();
 
